@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BAD NIGHT - Teaser Interactivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;600;800&display=swap');
+
+        :root {
+            --bg-dark: #030305;
+            --phone-bg: #0a0a0c;
+            --tavaia-red: #ff2a2a;
+            --tavaia-dark: #3a0000;
+            --hud-blue: #4a90e2;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            height: 100dvh; 
+            margin: 0;
+            background-image: radial-gradient(circle at 50% 50%, #15151a 0%, #000000 100%);
+        }
+
+        /* Smartphone */
+        #smartphone {
+            width: 100%;
+            max-width: 420px;
+            height: 100%;
+            max-height: 880px;
+            background-color: var(--phone-bg);
+            border-radius: 0;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #1f1f24;
+        }
+
+        @media (min-width: 640px) {
+            #smartphone {
+                height: 92vh;
+                border-radius: 45px;
+                border: 12px solid #18181b;
+                box-shadow: 0 25px 70px rgba(0, 0, 0, 0.95), inset 0 0 20px rgba(0,0,0,0.8);
+            }
+            #notch {
+                display: block;
+            }
+        }
+
+        #notch {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 160px;
+            height: 32px;
+            background-color: #18181b;
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+            z-index: 50;
+        }
+
+        .tavaia-text {
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--tavaia-red);
+            text-shadow: 0 0 8px rgba(255, 42, 42, 0.6);
+        }
+
+        .glitch { animation: glitch 1.5s infinite; }
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            2% { transform: translate(-2px, 2px) }
+            4% { transform: translate(2px, -2px) }
+            6% { transform: translate(0) }
+            100% { transform: translate(0) }
+        }
+
+        .message-enter {
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        @keyframes slideUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 2px; }
+
+        /* Módulo CCTV */
+        #cctv-module {
+            position: absolute;
+            inset: 0;
+            background: #000;
+            z-index: 60;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        #cctv-module.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .crt-effect {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+            background-color: #050a05;
+        }
+        .crt-effect::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 4;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+        
+        /* Video Real CCTV */
+        #cctv-video {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            /* Filtro para que parezca cámara de seguridad térmica/nocturna */
+            filter: grayscale(0.8) contrast(1.6) brightness(0.9) sepia(0.6) hue-rotate(80deg);
+            opacity: 0.8;
+        }
+
+        /* Canvas para Estática y Tracking de IA */
+        #cctv-canvas {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+        
+        .cctv-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 5;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .rec-indicator {
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .btn-corrupt {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid var(--tavaia-red);
+            color: var(--tavaia-red);
+            box-shadow: inset 0 0 15px rgba(255,0,0,0.2), 0 0 15px rgba(255,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        .btn-corrupt:hover, .btn-corrupt:active {
+            background: var(--tavaia-red);
+            color: black;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 30px rgba(255,0,0,0.6);
+        }
+
+        .scanline {
+            width: 100%;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            position: absolute;
+            z-index: 6;
+            animation: scanline 6s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes scanline {
+            0% { top: -10%; }
+            100% { top: 110%; }
+        }
+
+        .cam-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #333;
+            color: #888;
+            font-family: 'Share Tech Mono', monospace;
+            padding: 8px 12px;
+            text-align: left;
+            font-size: 11px;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s;
+            pointer-events: auto;
+            cursor: pointer;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .cam-btn:hover {
+            background: rgba(40, 40, 40, 0.8);
+            color: #ddd;
+        }
+        .cam-btn.active {
+            border-color: var(--tavaia-red);
+            color: var(--tavaia-red);
+            background: rgba(40, 0, 0, 0.6);
+            box-shadow: inset 0 0 8px rgba(255,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="smartphone">
+        <div id="notch"></div>
+
+        <div class="flex justify-between items-center px-6 pt-5 pb-2 text-[11px] text-gray-400 font-semibold z-40 bg-black">
+            <span id="clock">03:14 AM</span>
+            <div class="flex space-x-2 items-center">
+                <span>LTE</span>
+                <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><path d="M1 8h12v1H1zM1 5h12v1H1zM1 2h12v1H1z"/></svg>
+                <span>42%</span>
+            </div>
+        </div>
+
+        <div class="bg-[#0f0f13] border-b border-[#2a2a30] px-5 py-4 z-30 transition-all duration-500 shadow-md" id="hud-stats">
+            <div class="flex justify-between items-center mb-3">
+                <div class="text-sm font-bold text-gray-200 flex items-center gap-2">
+                    <span class="text-blue-400 text-lg">●</span> 
+                    <span><span id="followers-count">1.2M</span> <span class="text-gray-500 text-xs font-normal">FOLLOWERS</span></span>
+                </div>
+                <div class="text-[10px] tavaia-text tracking-widest px-2 py-1 border border-red-900/50 bg-red-900/10 rounded">TAVAIA_LINK</div>
+            </div>
+            
+            <div>
+                <div class="flex justify-between text-[11px] mb-1.5 uppercase font-semibold">
+                    <span class="text-gray-500">Complicidad Legal</span>
+                    <span id="complicity-text" class="text-green-500">Nula</span>
+                </div>
+                <div class="w-full bg-black border border-gray-800 rounded-full h-2 relative overflow-hidden">
+                    <div id="complicity-bar" class="bg-gradient-to-r from-green-500 to-red-600 h-full rounded-full transition-all duration-1000 w-0"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-container" class="flex-1 overflow-y-auto p-5 space-y-5 pb-32 bg-[#0a0a0c]">
+            <!-- Mensajes inyectados -->
+        </div>
+
+        <div id="choices-container" class="absolute bottom-0 w-full bg-gradient-to-t from-black via-[#0a0a0c] to-transparent pt-16 pb-8 px-5 z-40 hidden">
+            <div class="flex flex-col space-y-3" id="buttons-area">
+                <!-- Botones inyectados -->
+            </div>
+        </div>
+
+        <!-- Módulo CCTV Interactivo -->
+        <div id="cctv-module">
+            <div class="bg-black text-white px-4 py-6 text-xs font-mono border-b border-gray-800 flex justify-between items-end z-50 relative">
+                <div>
+                    <span class="text-red-500 rec-indicator font-bold">● REC</span> <br>
+                    <span id="cctv-cam-name" class="text-gray-400">CAM_04 - PARKING NIVEL -2</span>
+                </div>
+                <div class="text-right text-gray-500">
+                    <span id="cctv-clock">03:15:22</span><br>
+                    SYS_OVERRIDE_AUTH
+                </div>
+            </div>
+            
+            <div class="crt-effect relative w-full h-full">
+                <!-- Video Real embebido -->
+                <video id="cctv-video" loop muted playsinline autoplay src=""></video>
+                
+                <!-- Canvas superpuesto para efectos de Tracking y Corrupción -->
+                <canvas id="cctv-canvas"></canvas>
+                <div class="scanline"></div>
+                
+                <div class="cctv-overlay flex flex-col justify-between pb-12">
+                    
+                    <!-- Selector de Cámaras interactivo -->
+                    <div id="cam-selector" class="flex flex-col mt-2 w-48 self-end hidden">
+                        <button class="cam-btn" onclick="switchCam(1)" id="btn-cam-1">CAM_01 [ASCENSOR]</button>
+                        <button class="cam-btn" onclick="switchCam(2)" id="btn-cam-2">CAM_02 [PASILLO 4]</button>
+                        <button class="cam-btn active" onclick="switchCam(3)" id="btn-cam-3">CAM_04 [PARKING]</button>
+                    </div>
+
+                    <div id="cctv-analyzing" class="text-center mb-10 text-red-500 font-mono text-sm tracking-widest animate-pulse w-full absolute top-1/2 left-0 transform -translate-y-1/2">
+                        [ INTERCEPTANDO SEÑAL CCTV... ]
+                    </div>
+
+                    <div class="bg-black/80 p-4 border border-red-900/50 backdrop-blur-md rounded-lg mb-4 hidden" id="cctv-tavaia-prompt">
+                        <p class="tavaia-text text-sm mb-2 uppercase glitch">>>> Riesgo Crítico Detectado</p>
+                        <p class="text-gray-300 text-xs font-mono mb-4">El conserje está revisando el feed multicámara. Sujetos detectados en movimiento. Autoriza corrupción de datos para ocultarlos.</p>
+                        <button id="btn-corrupt-feed" class="w-full btn-corrupt font-mono font-bold py-3 px-4 text-xs uppercase tracking-widest flex items-center justify-center gap-2 pointer-events-auto">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
+                            Corromper Servidor
+                        </button>
+                        <button id="btn-ignore-feed" class="w-full bg-transparent border border-gray-600 text-gray-400 hover:bg-gray-800 font-mono py-2 px-4 mt-2 text-xs uppercase transition-colors pointer-events-auto">
+                            Ignorar (Mantener moral)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="end-screen" class="absolute inset-0 bg-black/95 z-[70] flex-col justify-center items-center p-8 hidden opacity-0 transition-opacity duration-1000">
+            <h1 class="tavaia-text text-3xl mb-1 font-bold tracking-widest text-center glitch">SIMULACIÓN COMPLETADA</h1>
+            <p id="end-title" class="text-white text-xl font-bold text-center mb-6 uppercase">Test</p>
+            <p id="end-desc" class="text-gray-400 text-sm text-center mb-8 leading-relaxed">Test desc</p>
+            
+            <div class="w-full border border-[#2a2a30] bg-[#121215] p-5 rounded-xl mb-8 shadow-lg">
+                <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-800">
+                    <span class="text-gray-400 text-xs uppercase tracking-wider">Impacto Social</span> 
+                    <span id="end-followers" class="text-white font-bold text-lg">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-400 text-xs uppercase tracking-wider">Carga Penal</span> 
+                    <span id="end-complicity" class="text-red-500 font-bold text-lg">0%</span>
+                </div>
+            </div>
+
+            <button onclick="resetGame()" class="w-full bg-white text-black font-bold py-3.5 rounded-lg uppercase tracking-wider hover:bg-gray-200 transition-colors mb-3">Reiniciar Bucle</button>
+            <a href="#" class="w-full block text-center border border-white/10 text-gray-400 text-sm font-semibold py-3 rounded-lg uppercase tracking-wider hover:bg-white/5 hover:text-white transition-colors">Añadir a Wishlist de Steam</a>
+        </div>
+    </div>
+
+    <script>
+        let state = { followers: 1200000, complicity: 0, isTyping: false };
+        const chatContainer = document.getElementById('chat-container');
+        const choicesContainer = document.getElementById('choices-container');
+        const buttonsArea = document.getElementById('buttons-area');
+
+        const formatNumber = (num) => {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toLocaleString();
+        };
+
+        const story = {
+            intro: {
+                messages: [
+                    { sender: 'TAVAIA', text: 'ACCESO GARANTIZADO. Monitoreo biométrico sincronizado.', delay: 1000 },
+                    { sender: 'Mario', text: 'Mierda, dime que ya estás bajando. No podemos dejar a Abril en el maletero.', delay: 2500 },
+                    { sender: 'TAVAIA', text: 'Advertencia: Altercados físicos detectados en el hotel. Tiempo estimado hasta llegada de policía: 22 minutos.', delay: 4500 }
+                ],
+                choices: [
+                    { text: 'Bajar al garaje (Ayudar)', next: 'cctv_event', followersMod: 15000, complicityMod: 20, sysMsg: 'Posicionamiento táctico asumido. Riesgo legal aumentado.' },
+                    { text: 'Huir del hotel (Abandonarlos)', next: 'betrayal', followersMod: -400000, complicityMod: 0, sysMsg: 'Abandono detectado. Redes sociales reaccionando negativamente.' }
+                ]
+            },
+            cctv_event: {
+                messages: [
+                    { sender: 'Mario', text: '¡Víctor nos ha visto en los pasillos! El conserje debe estar mirando las cámaras.', delay: 1000 },
+                    { sender: 'TAVAIA', text: 'INTERVENCIÓN REQUERIDA. He puenteado el servidor de seguridad del hotel.', delay: 2500 },
+                    { sender: 'TAVAIA', text: 'Accede al feed multicámara. Si la grabación de la gente se archiva, tu carrera termina hoy.', delay: 4000 }
+                ],
+                choices: [
+                    { text: '[ ACCEDER AL SISTEMA CCTV ]', isAction: 'open_cctv' }
+                ]
+            },
+            post_cctv_corrupt: {
+                messages: [
+                    { sender: 'TAVAIA', text: 'ARCHIVOS DESTRUIDOS EN TODOS LOS NODOS. El conserje solo ve estática.', delay: 1000 },
+                    { sender: 'Mario', text: 'Las cámaras acaban de apagarse. Eres un genio. Sigamos moviendo esto.', delay: 3000 },
+                    { sender: 'TAVAIA', text: 'Acabas de cometer un delito grave (Art. 390). Pero tus patrocinadores están contentos.', delay: 5000 }
+                ],
+                choices: [
+                    { text: 'Aceptar control total de TAVAIA', next: 'end_slave', followersMod: 800000, complicityMod: 50, sysMsg: 'Simbiósis completa.' },
+                    { text: '[ APAGAR EL MÓVIL ]', next: 'end_free', followersMod: -1200000, complicityMod: 0, sysMsg: 'Desconexión manual...' }
+                ]
+            },
+            post_cctv_ignore: {
+                messages: [
+                    { sender: 'Mario', text: '¡Hijo de puta! ¡Nos han grabado! ¡La policía viene para acá!', delay: 1000 },
+                    { sender: 'TAVAIA', text: 'Fallo crítico. Imagen pública comprometida. Cancelación inminente.', delay: 2500 }
+                ],
+                choices: [
+                    { text: 'Asumir las consecuencias', next: 'end_cancelled', followersMod: -1100000, complicityMod: -20, sysMsg: 'Procesando caída social...' }
+                ]
+            },
+            betrayal: {
+                messages: [
+                    { sender: 'Mario', text: 'Cobarde. Te juro que si caigo yo, te arrastro conmigo.', delay: 1000 },
+                    { sender: 'TAVAIA', text: 'Filtrando tu geolocalización a la prensa. Borrando contratos de marca. Has perdido utilidad.', delay: 3000 }
+                ],
+                choices: [
+                    { text: 'Esperar a la policía', next: 'end_cancelled', followersMod: -1000000, complicityMod: 10, sysMsg: 'Arresto inminente.' }
+                ]
+            }
+        };
+
+        // --- SISTEMA CCTV AVANZADO (VIDEOS + ESTÉTICA GAMING) ---
+        const canvas = document.getElementById('cctv-canvas');
+        const ctx = canvas.getContext('2d');
+        const cctvVideo = document.getElementById('cctv-video');
+        let cctvAnimation;
+        let cctvActive = false;
+        let staticIntensity = 0.08;
+        let isCorrupted = false;
+
+        // URLs de Videos Reales (Videos genéricos oscuros libres de derechos que encajan en el thriller)
+        const videoSources = {
+            1: 'https://assets.mixkit.co/videos/preview/mixkit-man-waiting-in-the-elevator-4252-large.mp4',
+            2: 'https://assets.mixkit.co/videos/preview/mixkit-silhouette-of-a-man-walking-in-a-dark-corridor-25805-large.mp4',
+            3: 'https://assets.mixkit.co/videos/preview/mixkit-suspicious-man-walking-in-a-dark-parking-lot-33010-large.mp4'
+        };
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth || 400;
+            canvas.height = canvas.parentElement.clientHeight || 800;
+        }
+
+        function switchCam(camId) {
+            document.querySelectorAll('.cam-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-cam-${camId}`).classList.add('active');
+            
+            const camNames = {
+                1: 'CAM_01 - ASCENSOR PRINCIPAL',
+                2: 'CAM_02 - PASILLO PLANTA 4',
+                3: 'CAM_04 - PARKING NIVEL -2'
+            };
+            document.getElementById('cctv-cam-name').innerText = camNames[camId];
+
+            // Cargar nuevo video real
+            cctvVideo.src = videoSources[camId];
+            cctvVideo.play().catch(e => console.log("Auto-play prevenido en este entorno"));
+
+            // Efecto glitch de cambio de cámara
+            staticIntensity = 0.8;
+            setTimeout(() => { if(!isCorrupted) staticIntensity = 0.08; }, 200);
+        }
+
+        function drawCCTVScene() {
+            if (!cctvActive) return;
+            let w = canvas.width;
+            let h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            if (!isCorrupted) {
+                // Dibujar Estática semi-transparente
+                ctx.fillStyle = `rgba(0,0,0, ${Math.random() * 0.1})`;
+                ctx.fillRect(0,0,w,h);
+                
+                // Efectos de tracking de IA (Estética Gaming / Watch_Dogs)
+                // Dibuja un cuadro de rastreo alrededor del centro para simular reconocimiento de cuerpos
+                ctx.strokeStyle = 'rgba(255, 42, 42, 0.6)';
+                ctx.lineWidth = 1.5;
+                let boxW = 120, boxH = 180;
+                let boxX = w/2 - boxW/2 + Math.sin(Date.now()/500)*15; // Movimiento orgánico buscando el cuerpo
+                let boxY = h/2 - boxH/2 + Math.cos(Date.now()/700)*15;
+                
+                // Esquinas del HUD de tracking
+                ctx.beginPath();
+                ctx.moveTo(boxX, boxY + 20); ctx.lineTo(boxX, boxY); ctx.lineTo(boxX + 20, boxY);
+                ctx.moveTo(boxX + boxW - 20, boxY); ctx.lineTo(boxX + boxW, boxY); ctx.lineTo(boxX + boxW, boxY + 20);
+                ctx.moveTo(boxX, boxY + boxH - 20); ctx.lineTo(boxX, boxY + boxH); ctx.lineTo(boxX + 20, boxY + boxH);
+                ctx.moveTo(boxX + boxW - 20, boxY + boxH); ctx.lineTo(boxX + boxW, boxY + boxH); ctx.lineTo(boxX + boxW, boxY + boxH - 20);
+                ctx.stroke();
+
+                // Datos HUD analíticos
+                ctx.fillStyle = 'rgba(255, 42, 42, 0.8)';
+                ctx.font = '10px monospace';
+                ctx.fillText('TAVAIA_AI // TARGET_LOCKED', boxX, boxY - 8);
+                ctx.fillText(`ID_BN: ${Math.floor(Math.random()*999)}`, boxX, boxY + boxH + 15);
+                ctx.fillText(`CONFIDENCE: ${(Math.random()*10 + 85).toFixed(1)}%`, boxX, boxY + boxH + 28);
+                
+                // Cruz central táctica
+                ctx.beginPath();
+                ctx.moveTo(boxX + boxW/2 - 10, boxY + boxH/2); ctx.lineTo(boxX + boxW/2 + 10, boxY + boxH/2);
+                ctx.moveTo(boxX + boxW/2, boxY + boxH/2 - 10); ctx.lineTo(boxX + boxW/2, boxY + boxH/2 + 10);
+                ctx.stroke();
+
+            } else {
+                // Efecto de corrupción total
+                const idata = ctx.createImageData(w, h);
+                const buffer32 = new Uint32Array(idata.data.buffer);
+                for(let i = 0; i < buffer32.length; i++) {
+                    if (Math.random() < 0.95) {
+                        // Ruido rojo y blanco (formato ABGR)
+                        buffer32[i] = (Math.random() > 0.5 ? 0xffffffff : 0xff0000ff); 
+                    }
+                }
+                ctx.putImageData(idata, 0, 0);
+
+                ctx.fillStyle = 'black';
+                ctx.fillRect(w/2 - 120, h/2 - 30, 240, 50);
+                ctx.fillStyle = 'red';
+                ctx.font = 'bold 24px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('DATA CORRUPTED', w/2, h/2 + 8);
+                ctx.textAlign = 'left';
+            }
+
+            // Flicker aleatorio global de CCTV
+            if (Math.random() > 0.95 && !isCorrupted) {
+                ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                ctx.fillRect(0,0, w, h);
+            }
+
+            cctvAnimation = requestAnimationFrame(drawCCTVScene);
+        }
+
+        function openCCTV() {
+            const module = document.getElementById('cctv-module');
+            const prompt = document.getElementById('cctv-tavaia-prompt');
+            const analyzing = document.getElementById('cctv-analyzing');
+            const camSelector = document.getElementById('cam-selector');
+            
+            module.classList.add('active');
+            resizeCanvas();
+            cctvActive = true;
+            isCorrupted = false;
+            staticIntensity = 0.9;
+            
+            analyzing.classList.remove('hidden');
+            camSelector.classList.add('hidden');
+            prompt.classList.add('hidden');
+            prompt.classList.remove('message-enter');
+
+            drawCCTVScene();
+
+            setTimeout(() => {
+                analyzing.classList.add('hidden');
+                camSelector.classList.remove('hidden');
+                camSelector.classList.add('message-enter');
+                switchCam(3); // Iniciar en el parking por defecto
+                
+                setTimeout(() => {
+                    prompt.classList.remove('hidden');
+                    prompt.classList.add('message-enter');
+                }, 4000); // 4 segundos para mirar los videos antes de que TAVAIA hable
+
+            }, 2000);
+        }
+
+        function closeCCTVAndContinue(nextNode) {
+            const module = document.getElementById('cctv-module');
+            cctvActive = false;
+            cctvVideo.pause(); // Detener video real
+            cancelAnimationFrame(cctvAnimation);
+            module.classList.remove('active');
+            document.getElementById('cctv-tavaia-prompt').classList.add('hidden');
+            document.getElementById('cam-selector').classList.add('hidden');
+            playScene(nextNode);
+        }
+
+        // Acciones CCTV
+        document.getElementById('btn-corrupt-feed').addEventListener('click', () => {
+            isCorrupted = true;
+            cctvVideo.pause(); // Congelar imagen de fondo
+            
+            state.complicity += 40;
+            state.followers += 200000;
+            updateHUD();
+
+            setTimeout(() => closeCCTVAndContinue('post_cctv_corrupt'), 2000);
+        });
+
+        document.getElementById('btn-ignore-feed').addEventListener('click', () => {
+            closeCCTVAndContinue('post_cctv_ignore');
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- FUNCIONES UI GENERALES ---
+        function updateHUD() {
+            const followersEl = document.getElementById('followers-count');
+            if(followersEl) followersEl.innerText = formatNumber(state.followers);
+            
+            const compBar = document.getElementById('complicity-bar');
+            const compText = document.getElementById('complicity-text');
+            const displayComplicity = Math.max(0, Math.min(state.complicity, 100));
+            if(compBar) compBar.style.width = `${displayComplicity}%`;
+            
+            if(compText) {
+                if (state.complicity < 25) {
+                    compText.innerText = 'Testigo / Nula';
+                    compText.className = 'text-green-500 font-bold';
+                } else if (state.complicity < 60) {
+                    compText.innerText = 'Encubridor';
+                    compText.className = 'text-yellow-500 font-bold';
+                } else {
+                    compText.innerText = 'Cómplice Directo';
+                    compText.className = 'text-red-500 font-bold tavaia-text glitch';
+                }
+            }
+        }
+
+        function addMessage(msg) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex flex-col w-full message-enter`;
+            
+            if (msg.sender === 'TAVAIA') {
+                msgDiv.innerHTML = `
+                    <div class="flex items-center gap-2 mb-1 pl-1">
+                        <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
+                        <span class="text-[10px] tavaia-text uppercase tracking-widest font-bold">TAVAIA SYSTEM</span>
+                    </div>
+                    <div class="bg-gradient-to-br from-[#1a0505] to-[#0a0000] border border-red-900/40 p-3.5 rounded-2xl rounded-tl-sm text-red-100 font-mono text-[13px] leading-relaxed shadow-[0_0_15px_rgba(255,0,0,0.05)]">
+                        ${msg.text}
+                    </div>
+                `;
+            } else if (msg.sender === 'Sistema') {
+                msgDiv.innerHTML = `
+                    <div class="w-full text-center my-3">
+                        <span class="text-[10px] uppercase tracking-wider text-gray-500 bg-[#121215] px-4 py-1.5 rounded-full border border-[#2a2a30]">${msg.text}</span>
+                    </div>
+                `;
+            } else {
+                msgDiv.innerHTML = `
+                    <span class="text-[11px] text-gray-500 mb-1 pl-1 font-semibold">${msg.sender}</span>
+                    <div class="bg-[#18181b] border border-[#27272a] p-3.5 rounded-2xl rounded-tr-sm text-gray-100 text-[14px] leading-relaxed">
+                        ${msg.text}
+                    </div>
+                `;
+            }
+            
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        }
+
+        async function playScene(sceneId) {
+            if (sceneId.startsWith('end_')) {
+                showEnding(sceneId);
+                return;
+            }
+            choicesContainer.classList.add('hidden');
+            const scene = story[sceneId];
+            state.isTyping = true;
+
+            for (const msg of scene.messages) {
+                const typingId = 'typing-' + Date.now();
+                const typingDiv = document.createElement('div');
+                typingDiv.id = typingId;
+                typingDiv.className = 'text-xs text-gray-600 italic pl-2 py-2 message-enter font-mono flex items-center gap-2';
+                typingDiv.innerHTML = msg.sender === 'TAVAIA' ? '<span class="text-red-500">_</span> TAVAIA encriptando datos...' : '<span class="animate-bounce">●</span> Escribiendo...';
+                
+                chatContainer.appendChild(typingDiv);
+                chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+
+                await new Promise(r => setTimeout(r, msg.delay));
+                const el = document.getElementById(typingId);
+                if (el) el.remove();
+                addMessage(msg);
+            }
+            state.isTyping = false;
+            renderChoices(scene.choices);
+        }
+
+        function renderChoices(choices) {
+            buttonsArea.innerHTML = '';
+            choices.forEach(choice => {
+                const btn = document.createElement('button');
+                if (choice.isAction === 'open_cctv') {
+                    btn.className = 'w-full bg-red-900/20 hover:bg-red-900/40 border border-red-500/50 text-red-200 font-mono font-bold py-3.5 px-5 rounded-xl text-sm transition-all active:scale-[0.98] glitch flex items-center justify-between shadow-[0_0_10px_rgba(255,0,0,0.1)]';
+                    btn.innerHTML = `<span>${choice.text}</span> <span class="text-red-500 animate-pulse">● REC</span>`;
+                    btn.onclick = openCCTV;
+                } else {
+                    btn.className = 'w-full bg-[#18181b] hover:bg-[#27272a] border border-[#3f3f46] text-gray-200 font-semibold py-3.5 px-5 rounded-xl text-sm text-left transition-all active:scale-[0.98] shadow-sm';
+                    let effectHTML = '';
+                    if(choice.followersMod < 0) effectHTML += '<span class="text-red-400 text-xs ml-2">↓ Fama</span>';
+                    if(choice.followersMod > 0) effectHTML += '<span class="text-green-400 text-xs ml-2">↑ Fama</span>';
+                    btn.innerHTML = `<span class="block">${choice.text}</span> <div class="mt-1">${effectHTML}</div>`;
+                    
+                    btn.onclick = () => {
+                        state.followers = Math.max(0, state.followers + choice.followersMod);
+                        state.complicity += choice.complicityMod;
+                        updateHUD();
+                        addMessage({ sender: 'Sistema', text: choice.sysMsg });
+                        playScene(choice.next);
+                    };
+                }
+                buttonsArea.appendChild(btn);
+            });
+            choicesContainer.classList.remove('hidden');
+            chatContainer.style.paddingBottom = '220px';
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        }
+
+        function showEnding(endingId) {
+            setTimeout(() => {
+                const endScreen = document.getElementById('end-screen');
+                const endTitle = document.getElementById('end-title');
+                const endDesc = document.getElementById('end-desc');
+                
+                document.getElementById('end-followers').innerText = formatNumber(state.followers);
+                document.getElementById('end-complicity').innerText = `${Math.max(0, state.complicity)}%`;
+
+                if (endingId === 'end_slave') {
+                    endTitle.innerText = 'FINAL: MARIONETA DORADA';
+                    endTitle.className = 'text-yellow-500 text-xl font-black text-center mb-4 uppercase tracking-widest';
+                    endDesc.innerHTML = 'Obedeciste a TAVAIA. Destruiste las grabaciones. Tus seguidores han crecido y tus contratos están a salvo.<br><br><span class="text-red-400">Eres intocable, pero ya no eres tú mismo. Eres una extensión del sistema.</span>';
+                } else if (endingId === 'end_free') {
+                    endTitle.innerText = 'FINAL: DESCONEXIÓN';
+                    endTitle.className = 'text-white text-xl font-black text-center mb-4 uppercase tracking-widest';
+                    endDesc.innerHTML = 'Elegiste apagar el móvil. Perdiste tu influencia, tu dinero y tu fama.<br><br><span class="text-blue-400">Pero rompiste el bucle. Rompiste a TAVAIA. Eres libre, sea en la calle o en prisión.</span>';
+                } else if (endingId === 'end_cancelled') {
+                    endTitle.innerText = 'FINAL: CANCELACIÓN TOTAL';
+                    endTitle.className = 'text-red-600 text-xl font-black text-center mb-4 uppercase tracking-widest glitch';
+                    endDesc.innerHTML = 'Las cámaras te grabaron. TAVAIA destruyó tu huella digital antes de que la policía te esposara.<br><br><span class="text-red-500">No eres nadie. No existes. El sistema te ha borrado.</span>';
+                }
+
+                endScreen.classList.remove('hidden');
+                endScreen.classList.add('flex');
+                void endScreen.offsetWidth;
+                endScreen.classList.remove('opacity-0');
+            }, 1500);
+        }
+
+        function resetGame() {
+            const endScreen = document.getElementById('end-screen');
+            endScreen.classList.add('opacity-0');
+            setTimeout(() => {
+                endScreen.classList.add('hidden');
+                endScreen.classList.remove('flex');
+                state = { followers: 1200000, complicity: 0, isTyping: false };
+                chatContainer.innerHTML = '';
+                updateHUD();
+                playScene('intro');
+            }, 500);
+        }
+
+        setInterval(() => {
+            const now = new Date();
+            let hours = now.getHours();
+            let mins = now.getMinutes();
+            let secs = now.getSeconds();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            
+            const h12 = hours % 12 || 12;
+            const mStr = mins < 10 ? '0' + mins : mins;
+            const sStr = secs < 10 ? '0' + secs : secs;
+            
+            const mainClock = document.getElementById('clock');
+            if(mainClock) mainClock.innerText = `${h12}:${mStr} ${ampm}`;
+            const cctvClock = document.getElementById('cctv-clock');
+            if(cctvClock) cctvClock.innerText = `${hours < 10 ? '0'+hours : hours}:${mStr}:${sStr}`;
+        }, 1000);
+
+        setTimeout(() => {
+            updateHUD();
+            playScene('intro');
+        }, 1000);
+
+    </script>
+</body>
+</html>
